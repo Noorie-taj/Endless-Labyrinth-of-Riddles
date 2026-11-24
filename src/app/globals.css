@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #ffffff;
+  --card: #f4f7fc;
+  --ink: #0a1f44;
+  --mute: #5a6b8c;
+  --line: #d3dbec;
+  --acc: #0a2a66;
+  --acc-ink: #ffffff;
+  --gold: #1f5fd6;
+  --wall: #0a2a66;
+  --lit: #ffffff;
+  --seen: #dfe6f5;
+  --fog: #0a1f44;
+  --bad: #c0392b;
+  --good: #1b7f4c;
+  color-scheme: light;
+}
+
+html {
+  scroll-padding-top: env(safe-area-inset-top, 0px);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@keyframes modal-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-8px);
+  }
+  75% {
+    transform: translateX(8px);
+  }
+}
+
+.animate-modal-shake {
+  animation: modal-shake 0.35s ease-in-out;
+}

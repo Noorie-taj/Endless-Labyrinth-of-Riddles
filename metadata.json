@@ -1,0 +1,8 @@
+{
+  "name": "Labyrinth of Riddles",
+  "description": "Endless daily mazes with fog-of-war exploration, riddle-locked gates, per-level unique riddles, and a daily leaderboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

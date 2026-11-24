@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Labyrinth of Riddles</title>
+<style>
+:root{--bg:#ffffff;--card:#f4f7fc;--ink:#0a1f44;--mute:#5a6b8c;--line:#d3dbec;--acc:#0a2a66;--acc-ink:#ffffff;--gold:#1f5fd6;--wall:#0a2a66;--lit:#ffffff;--seen:#dfe6f5;--fog:#0a1f44;--bad:#c0392b;--good:#1b7f4c;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#ffffff;--card:#f4f7fc;--ink:#0a1f44;--mute:#5a6b8c;--line:#d3dbec;--acc:#0a2a66;--acc-ink:#ffffff;--gold:#1f5fd6;--wall:#0a2a66;--lit:#ffffff;--seen:#dfe6f5;--fog:#0a1f44;--bad:#c0392b;--good:#1b7f4c;color-scheme:light}}
+:root[data-theme="dark"]{--bg:#ffffff;--card:#f4f7fc;--ink:#0a1f44;--mute:#5a6b8c;--line:#d3dbec;--acc:#0a2a66;--acc-ink:#ffffff;--gold:#1f5fd6;--wall:#0a2a66;--lit:#ffffff;--seen:#dfe6f5;--fog:#0a1f44;--bad:#c0392b;--good:#1b7f4c;color-scheme:light}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:560px;margin:0 auto;padding:16px}
+h1{font-size:1.7rem;margin:4px 0}
+.mute{color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.hud{display:flex;justify-content:space-between;gap:8px;font:600 .9rem system-ui,sans-serif;margin-bottom:8px}
+.hud span{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 12px}
+canvas{display:block;width:100%;border:2px solid var(--line);border-radius:12px;background:var(--fog);touch-action:none}
+.pad{display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(2,52px);gap:6px;justify-content:center;margin:14px 0}
+.pad button{font-size:1.3rem}
+button,input{font:inherit}
+.btn{background:var(--acc);color:var(--acc-ink);border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer}
+.btn.alt{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.pad button{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:12px;cursor:pointer}
+input{width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);margin:8px 0}
+.ov{position:fixed;inset:0;background:rgba(10,8,20,.6);display:grid;place-items:center;padding:16px;z-index:9}
+.modal{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:460px;width:100%}
+.modal .q{font-size:1.15rem;font-style:italic}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.shake{animation:sh .35s}
+@keyframes sh{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.msg{min-height:1.4em;font:.9rem system-ui,sans-serif}.msg.bad{color:var(--bad)}.msg.good{color:var(--good)}
+ol{padding-left:22px;margin:6px 0}li{margin:2px 0}li.me{font-weight:700;color:var(--acc)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+<h1>🧭 Endless Labyrinth of Riddles</h1>
+<p class="mute">Endless mazes, new every day, each one bigger and harder than the last. You start at the top-left glowing dot and the exit 🚩 is always in the bottom-right corner, visible even through the fog. You only see a few steps ahead, and orange gates 🔒 block the way until you solve their riddle. Most levels cleared tops the board.</p>
+
+<div id="start" class="card">
+<label for="nick" class="mute">Your name for the leaderboard</label>
+<input id="nick" maxlength="16" placeholder="Wanderer" autocomplete="nickname">
+<ul class="mute"><li>Move with arrow keys, WASD or the pad.</li><li>Gates need a riddle answer. A hint costs 30 s, a wrong answer 15 s.</li><li>The clock keeps running while you think.</li></ul>
+<button class="btn" id="go">Enter the labyrinth</button>
+<div class="msg mute" id="dbnote"></div>
+</div>
+
+<div id="game" hidden>
+<div class="hud"><span id="hl">Level 1/3</span><span id="ht">0:00</span><span id="hp">Penalty 0s</span></div>
+<canvas id="cv"></canvas>
+<div class="row" style="margin-top:10px"><button class="btn alt" id="rl">↻ Restart this level</button><button class="btn alt" id="rg">⟲ Restart from level 1</button><button class="btn alt" id="mm">🏠 Main menu</button></div>
+<div class="msg" id="toast"></div><p class="mute" style="margin:8px 0 0">Start: top-left · Exit 🚩: bottom-right. Restarting a level keeps your clock running.</p>
+<div class="pad">
+<span></span><button data-d="0" aria-label="Up">↑</button><span></span>
+<button data-d="3" aria-label="Left">←</button><button data-d="2" aria-label="Down">↓</button><button data-d="1" aria-label="Right">→</button>
+</div>
+</div>
+
+<div id="end" class="card" hidden>
+<h2 id="etitle">You escaped!</h2>
+<p id="esum"></p>
+<div class="msg" id="esave"></div>
+<button class="btn alt" id="again">Play again (same maze, new try)</button>
+</div>
+
+<div class="card"><strong>Today’s leaderboard</strong> <span class="mute">(most levels, then lowest time)</span><ol id="lb"><li class="mute">No scores yet.</li></ol></div>
+</main>
+
+<div class="ov" id="ov" hidden><div class="modal" id="modal">
+<div class="mute">🔒 The gate speaks:</div>
+<p class="q" id="rq"></p>
+<input id="ra" placeholder="Your answer" autocomplete="off">
+<div class="msg" id="rm"></div>
+<div class="row"><button class="btn" id="rs">Answer</button><button class="btn alt" id="rh">Hint (+30s)</button><button class="btn alt" id="rc">Step back</button></div>
+</div></div>
+
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var RIDDLES=[
+["I speak without a mouth and hear without ears. Wind brings me to life. What am I?",["echo","an echo"]],
+["The more of me you take, the more you leave behind. What am I?",["footsteps","steps","footstep","step"]],
+["What has keys but cannot open locks?",["piano","keyboard","a piano","a keyboard"]],
+["What gets wetter the more it dries?",["towel","a towel"]],
+["I have cities but no houses, mountains but no trees, water but no fish. What am I?",["map","a map"]],
+["What can travel around the world while staying in one corner?",["stamp","a stamp"]],
+["What has hands but cannot clap?",["clock","a clock","watch","a watch"]],
+["I am tall when I am young and short when I am old. What am I?",["candle","a candle"]],
+["What has a head and a tail but no body?",["coin","a coin"]],
+["What building has the most stories?",["library","a library"]],
+["What comes once in a minute, twice in a moment, but never in a thousand years?",["m","letter m","the letter m"]],
+["The more you have of me, the less you see. What am I?",["darkness","dark","the dark"]],
+["What can you catch but never throw?",["cold","a cold","breath"]],
+["I follow you all day but vanish at night. What am I?",["shadow","a shadow","your shadow"]]];
+var DIRS=[[0,-1,1,4],[1,0,2,8],[0,1,4,1],[-1,0,8,2]];
+var SIZES=[9,11,13],GATES=[2,3,4];
+var day=(function(){var d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()})();
+function hash(s){var h=2166136261;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+var S={lvl:0,m:null,pos:0,seen:{},t0:0,pen:0,total:0,times:[],gate:null,uid:null,db:null,name:"Wanderer",run:false,timer:null,rid:[]};
+
+function shuffled(seed){var r=rng(seed),a=RIDDLES.map(function(_,i){return i});for(var i=a.length-1;i>0;i--){var j=Math.floor(r()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+function build(l){var n=Math.min(9+2*l,21),r=rng(hash(day+"L"+l)),open=new Array(n*n).fill(0),vis={},st=[0];vis[0]=1;
+while(st.length){var c=st[st.length-1],x=c%n,y=(c/n)|0,opts=[];
+for(var d=0;d<4;d++){var nx=x+DIRS[d][0],ny=y+DIRS[d][1];if(nx>=0&&ny>=0&&nx<n&&ny<n&&!vis[ny*n+nx])opts.push(d)}
+if(!opts.length){st.pop();continue}
+var d2=opts[Math.floor(r()*opts.length)],nc=(y+DIRS[d2][1])*n+x+DIRS[d2][0];
+open[c]|=DIRS[d2][2];open[nc]|=DIRS[d2][3];vis[nc]=1;st.push(nc)}
+var prev={0:-1},q=[0];while(q.length){var u=q.shift();if(u===n*n-1)break;
+for(var k=0;k<4;k++){if(open[u]&DIRS[k][2]){var v=(((u/n)|0)+DIRS[k][1])*n+u%n+DIRS[k][0];if(!(v in prev)){prev[v]=u;q.push(v)}}}}
+var path=[],p=n*n-1;while(p!==-1){path.unshift(p);p=prev[p]}
+var g=Math.min(2+Math.floor((l+1)/2),8),gates={},order=shuffled(hash(day+"R"+l));
+for(var i=0;i<g;i++){var idx=Math.floor(path.length*(i+1)/(g+1));gates[path[idx]]={r:order[i],ok:false,hint:false}}
+return{n:n,open:open,gates:gates,end:n*n-1}}
+
+var cv=$("cv"),ctx=cv.getContext("2d");
+function col(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+function size(){var w=Math.min(cv.parentElement.clientWidth,520),dpr=window.devicePixelRatio||1;cv.style.height=w+"px";cv.width=w*dpr;cv.height=w*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);cv._w=w}
+function draw(){if(!S.m)return;var m=S.m,n=m.n,w=cv._w,c=w/n,px=S.pos%n,py=(S.pos/n)|0;
+ctx.fillStyle=col("--fog");ctx.fillRect(0,0,w,w);ctx.lineCap="round";ctx.lineWidth=Math.max(2,c*.09);
+for(var i=0;i<n*n;i++){var x=i%n,y=(i/n)|0,lit=Math.abs(x-px)+Math.abs(y-py)<=2,seen=S.seen[i];if(!lit&&!seen){if(i===m.end){ctx.font=Math.floor(c*.6)+"px serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("🚩",x*c+c/2,y*c+c/2)}continue}
+ctx.fillStyle=col(lit?"--lit":"--seen");ctx.fillRect(x*c,y*c,c,c);
+ctx.strokeStyle=col("--wall");ctx.globalAlpha=lit?1:.45;ctx.beginPath();
+var o=m.open[i];if(!(o&1)){ctx.moveTo(x*c,y*c);ctx.lineTo((x+1)*c,y*c)}if(!(o&2)){ctx.moveTo((x+1)*c,y*c);ctx.lineTo((x+1)*c,(y+1)*c)}
+if(!(o&4)){ctx.moveTo(x*c,(y+1)*c);ctx.lineTo((x+1)*c,(y+1)*c)}if(!(o&8)){ctx.moveTo(x*c,y*c);ctx.lineTo(x*c,(y+1)*c)}ctx.stroke();ctx.globalAlpha=1;
+ctx.font=Math.floor(c*.6)+"px serif";ctx.textAlign="center";ctx.textBaseline="middle";
+var g=m.gates[i];if(g)ctx.fillText(g.ok?"🔓":"🔒",x*c+c/2,y*c+c/2);if(i===m.end)ctx.fillText("🚩",x*c+c/2,y*c+c/2)}
+ctx.fillStyle=col("--acc");ctx.beginPath();ctx.arc(px*c+c/2,py*c+c/2,c*.3,0,7);ctx.fill()}
+
+function fmt(s){s=Math.floor(s);return Math.floor(s/60)+":"+(s%60<10?"0":"")+(s%60)}
+function elapsed(){return(Date.now()-S.t0)/1000}
+function hud(){$("hl").textContent="Level "+(S.lvl+1);$("ht").textContent=fmt(elapsed()+S.pen);$("hp").textContent="Penalty "+S.pen+"s"}
+function startLevel(l){S.lvl=l;S.m=build(l);S.pos=0;S.seen={0:1};S.run=true;draw();hud()}
+function startGame(){S.t0=Date.now();S.pen=0;S.times=[];S.pen=0;$("start").hidden=true;$("end").hidden=true;$("game").hidden=false;size();startLevel(0);
+clearInterval(S.timer);S.timer=setInterval(function(){if(S.run)hud()},250)}
+
+function move(d){if(!S.run||S.gate!==null)return;var m=S.m,n=m.n;if(!(m.open[S.pos]&DIRS[d][2]))return;
+var np=((((S.pos/n)|0)+DIRS[d][1])*n)+S.pos%n+DIRS[d][0],g=m.gates[np];
+if(g&&!g.ok){openGate(np);return}step(np)}
+function step(np){S.pos=np;S.seen[np]=1;draw();if(np===S.m.end)finishLevel()}
+function finishLevel(){S.run=false;var t=elapsed()+S.pen;S.times.push(Math.round(t));
+$("toast").textContent="Level "+S.times.length+" cleared in "+fmt(t)+"!";$("toast").className="msg good";save();S.t0=Date.now();S.pen=0;S.run=true;startLevel(S.lvl+1);return;
+clearInterval(S.timer);var tot=S.times.reduce(function(a,b){return a+b},0);
+$("game").hidden=true;$("end").hidden=false;$("esum").textContent="Levels: "+S.times.map(fmt).join(" · ")+" — total "+fmt(tot);save(tot)}
+
+function openGate(p){S.gate=p;var g=S.m.gates[p];$("rq").textContent=RIDDLES[g.r][0];$("ra").value="";$("rm").textContent=g.hint?hintText(g):"";$("rm").className="msg";$("ov").hidden=false;setTimeout(function(){$("ra").focus()},50)}
+function hintText(g){var a=RIDDLES[g.r][1][0].replace(/^(a|an|the) /,"");return"Hint: "+a.length+" letters, starts with “"+a[0].toUpperCase()+"”."}
+function norm(s){return s.toLowerCase().replace(/[^a-z0-9 ]/g,"").replace(/\s+/g," ").trim()}
+function answer(){if(S.gate===null)return;var g=S.m.gates[S.gate],v=norm($("ra").value);if(!v)return;
+var ok=RIDDLES[g.r][1].some(function(a){return norm(a)===v||norm(a).replace(/^(a|an|the) /,"")===v.replace(/^(a|an|the) /,"")});
+if(ok){g.ok=true;var p=S.gate;S.gate=null;$("ov").hidden=true;step(p)}
+else{S.pen+=15;hud();$("rm").textContent="Not quite. +15s";$("rm").className="msg bad";var m=$("modal");m.classList.remove("shake");void m.offsetWidth;m.classList.add("shake")}}
+$("rs").onclick=answer;$("ra").addEventListener("keydown",function(e){if(e.key==="Enter")answer()});
+$("rh").onclick=function(){var g=S.m.gates[S.gate];if(!g.hint){g.hint=true;S.pen+=30;hud()}$("rm").textContent=hintText(g);$("rm").className="msg good"};
+$("rc").onclick=function(){S.gate=null;$("ov").hidden=true};
+
+document.addEventListener("keydown",function(e){if(!$("ov").hidden)return;var k={ArrowUp:0,w:0,ArrowRight:1,d:1,ArrowDown:2,s:2,ArrowLeft:3,a:3}[e.key];if(k!==undefined){e.preventDefault();move(k)}});
+Array.prototype.forEach.call(document.querySelectorAll(".pad button"),function(b){b.onclick=function(){move(+b.dataset.d)}});
+window.addEventListener("resize",function(){if(!$("game").hidden){size();draw()}});
+if(window.matchMedia)window.matchMedia("(prefers-color-scheme:dark)").addEventListener("change",draw);
+
+$("go").onclick=function(){S.name=($("nick").value.trim()||"Wanderer").slice(0,16);try{localStorage.setItem("lr-name",S.name)}catch(e){}startGame()};
+$("again").onclick=startGame;
+$("rg").onclick=startGame;
+$("mm").onclick=function(){S.run=false;S.gate=null;clearInterval(S.timer);$("ov").hidden=true;$("game").hidden=true;$("end").hidden=true;$("start").hidden=false;$("toast").textContent=""};
+$("rl").onclick=function(){S.gate=null;$("ov").hidden=true;S.m=build(S.lvl);S.pos=0;S.seen={0:1};S.pen+=10;S.run=true;draw();hud()};
+try{var sv=localStorage.getItem("lr-name");if(sv)$("nick").value=sv}catch(e){}
+
+function save(){var tot=S.times.reduce(function(a,b){return a+b},0),lv=S.times.length,el=$("toast");if(!(S.db&&S.uid)){el.textContent="Leaderboard unavailable here, so this score wasn’t saved.";return}
+var ref=S.db.doc("scores/"+S.uid);ref.get().then(function(s){var d=s.exists?s.data():null;
+if(d&&d.day===day&&((d.levels||0)>lv||((d.levels||0)===lv&&d.total<=tot))){return}
+return ref.set({name:S.name,total:tot,levels:lv,day:day,at:Date.now()})})
+.catch(function(){el.textContent="Couldn’t save your score (view-only access can’t post).";el.className="msg bad"})}
+function board(snap){var rows=[];snap.docs.forEach(function(d){var v=d.data();if(v&&v.day===day)rows.push({id:d.id,name:String(v.name||"?"),total:+v.total||0,levels:+v.levels||0})});
+rows.sort(function(a,b){return b.levels-a.levels||a.total-b.total});var ol=$("lb");ol.textContent="";
+if(!rows.length){var li=document.createElement("li");li.className="mute";li.textContent="No scores yet. Be the first!";ol.appendChild(li);return}
+rows.slice(0,10).forEach(function(r){var li=document.createElement("li");if(r.id===S.uid)li.className="me";li.textContent=r.name+" — Level "+r.levels+" · "+fmt(r.total);ol.appendChild(li)})}
+claude.use("user").then(function(u){if(u)return u.id().then(function(i){S.uid=i})}).then(function(){return claude.use("db")}).then(function(db){
+if(!db||!S.uid){$("dbnote").textContent="Playing offline: scores won’t be saved in this view.";return}
+S.db=db;db.collection("scores").onSnapshot(board,function(){})}).catch(function(){$("dbnote").textContent="Playing offline: scores won’t be saved in this view."});
+})();
+</script>
+</body>
+</html>
