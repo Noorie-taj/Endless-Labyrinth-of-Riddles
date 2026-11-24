@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
+import os from "os";
 import path from "path";
 
 export interface LeaderboardEntry {
@@ -12,7 +13,7 @@ export interface LeaderboardEntry {
   at: number;
 }
 
-const STORE_PATH = path.join("/tmp", "labyrinth-of-riddles-scores.json");
+const STORE_PATH = path.join(os.tmpdir(), "labyrinth-of-riddles-scores.json");
 
 let memoryScores: LeaderboardEntry[] | null = null;
 

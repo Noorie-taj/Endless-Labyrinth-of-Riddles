@@ -1,12 +1,13 @@
 import { spawn } from "node:child_process";
-import path from "node:path";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const nextCli = require.resolve("next/dist/bin/next");
 
 const rawMode = process.argv[2];
 const mode =
   rawMode === "build" ? "build" : rawMode === "start" ? "start" : "dev";
 const extraArgs = process.argv.slice(3);
-
-const nextBin = path.resolve(process.cwd(), "node_modules", ".bin", "next");
 
 let nextArgs;
 let nodeEnv;
@@ -40,7 +41,7 @@ if (mode === "build") {
   nextArgs = [mode, "-p", port, "-H", host];
 }
 
-const child = spawn(nextBin, nextArgs, {
+const child = spawn(process.execPath, [nextCli, ...nextArgs], {
   stdio: "inherit",
   env: {
     ...process.env,

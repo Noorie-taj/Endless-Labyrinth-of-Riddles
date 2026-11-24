@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node run-next.mjs dev",
     "build": "node run-next.mjs build",
-    "start": "node run-next.mjs start",
+    "start": "node server.ts",
     "clean": "rm -rf .next dist server.js",
     "lint": "tsc --noEmit"
   },
